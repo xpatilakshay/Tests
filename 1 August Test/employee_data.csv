@@ -1,0 +1,17 @@
+EmployeeID,Name,Age,Department,Salary
+101,John Doe,28,IT,60000
+102,Jane Smith,35,HR,58000
+103,Alice Johnson,45,Finance,75000
+104,Bob Lee,32,IT,62000
+105,Chris Green,29,HR,57000
+106,Eva Adams,38,Marketing,70000
+107,Frank Wright,31,Finance,73000
+108,Gina King,,IT,64000
+109,Hank Moody,41,Marketing,
+110,Ian Clark,36,Finance,71000
+111,John Doe,28,IT,60000
+112,Lisa Ray,34,HR,59000
+113,Mark Stone,27,IT,61000
+114,Nina Brown,33,Marketing,68000
+115,Omar White,30,Finance,69000
+
