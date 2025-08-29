@@ -1,0 +1,17 @@
+[
+    {
+        "id": 4,
+        "name": "David",
+        "average_marks": 90.0
+    },
+    {
+        "id": 5,
+        "name": "Eva",
+        "average_marks": 90.0
+    },
+    {
+        "id": 2,
+        "name": "Bob",
+        "average_marks": 88.0
+    }
+]
