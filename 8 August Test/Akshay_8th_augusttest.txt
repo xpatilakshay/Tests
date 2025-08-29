@@ -1,0 +1,572 @@
+3-Hour Practical Evaluation – MySQL & Python WebSocket
+
+-- 8th August 2025 Test
+
+Create database test;
+use test;
+
+-- Section A – MySQL Practical (40 marks)
+
+-- 1. Database Setup & Normalization (5 marks)
+-- - Create normalized tables for an e-commerce order system:
+--   customers(customer_id, name, email, city)
+-- - Define primary keys, foreign keys, and indexes for optimal performance.
+
+
+create table customers(
+customer_id int primary key auto_increment,
+name varchar(100) not null,
+email varchar(100) unique,
+city varchar(50),
+index idx_city (city)
+);
+
+INSERT INTO customers (name, email, city) VALUES
+('Akshay Patil', 'akshay.patil@example.com', 'Kolhapur'),
+('sahil Patil', 'sahil.patil@example.com', 'Mumbai'),
+('Ajay Jadhav', 'ajay.jadhav@example.com', 'Nashik'),
+('Priya Kulkarni', 'priya.kulkarni@example.com', 'Nagpur'),
+('Vikram Shinde', 'vikram.shinde@example.com', 'Aurangabad'),
+('Meera Gawande', 'meera.gawande@example.com', 'Solapur'),
+('Sanjay Pawar', 'sanjay.pawar@example.com', 'Kolhapur'),
+('Akash More', 'akash.more@example.com', 'Thane');
+
+
+--   orders(order_id, customer_id, order_date, amount)
+
+Create table orders(
+order_id int primary key auto_increment,
+customer_id int,
+order_date date,
+amount decimal(10,2),
+foreign key (customer_id) references customers(customer_id),
+index idx_orderdate (order_date),
+index idx_customer_id (customer_id)
+);
+
+
+INSERT INTO orders (customer_id, order_date, amount) VALUES
+(1, '2025-08-01', 1500.00),
+(2, '2025-08-02', 2450.50),
+(3, '2025-08-03', 3200.75),
+(1, '2025-08-05', 1800.25),
+(4, '2025-08-04', 980.00),
+(5, '2025-08-06', 2150.00),
+(6, '2025-08-06', 1350.40),
+(7, '2025-08-07', 1750.60);
+
+
+--   order_items(item_id, order_id, product_name, quantity, price)
+
+create table order_items(
+item_id int primary key auto_increment,
+order_id int,
+product_name varchar(100),
+quantity int,
+price decimal(10,2),
+foreign key (order_id) references orders(order_id),
+index idx_order_id (order_id) 
+);
+
+INSERT INTO order_items (order_id, product_name, quantity, price) VALUES
+(1, 'Basmati Rice 5kg', 1, 750.00),
+(1, 'Toor Dal 1kg', 2, 375.00),
+(2, 'Sunflower Oil 1L', 3, 250.00),
+(2, 'Wheat Flour 10kg', 1, 700.50),
+(3, 'Masala Mix Pack', 2, 800.00),
+(3, 'Sugar 5kg', 1, 400.75),
+(4, 'Chitale Bhakarwadi', 4, 450.25),
+(5, 'Alphonso Mango Box', 1, 980.00),
+(6, 'Kokum Syrup Bottle', 2, 1075.00),
+(7, 'Poha Pack 500g', 3, 450.00),
+(8, 'Groundnut Oil 1L', 2, 875.30);
+
+select * from customers;
+select * from orders;
+select * from order_items;
+
+-- 2. Complex Query – Top Customers Per City (7 marks)
+-- - Write a single query to find top 3 customers per city based on total amount spent in the last 12 months.
+
+select customer_id, name, city, total_amount_spend from 
+(
+select c.name, c.customer_id, c.city, sum(o.amount) as total_amount_spend ,
+rank() over (partition by city order by sum(o.amount) desc) as ranking
+from customers c join orders o on c.customer_id = o.customer_id
+where o.order_date >= curdate() - interval 12 month
+group by c.customer_id,c.name,c.city
+) as ranked 
+where ranking<=3
+order by total_amount_spend desc limit 3;
+
+
+-- 3. Duplicate Removal (5 marks)
+-- - In the orders table, delete duplicate rows keeping only the record with the smallest order_id for each (customer_id, order_date).
+SET SQL_SAFE_UPDATES = 0;
+delete ord1 from orders ord1 join orders ord2 on ord1.customer_id = ord2.customer_id and ord1.order_date = ord2.order_date;  
+
+-- 4. Pivot Report (8 marks)
+-- - Create a query to display total orders per month for 2024, showing months as columns.
+
+select 
+count(case when month(order_date) = 1 then 1 end ) as january,
+count(case when month(order_date) = 2 then 1 end ) as February,
+count(case when month(order_date) = 3 then 1 end ) as March,
+count(case when month(order_date) = 4 then 1 end ) as April,
+count(case when month(order_date) = 5 then 1 end ) as May,
+count(case when month(order_date) = 6 then 1 end ) as June,
+count(case when month(order_date) = 7 then 1 end ) as July,
+count(case when month(order_date) = 8 then 1 end ) as August,
+count(case when month(order_date) = 9 then 1 end ) as September,
+count(case when month(order_date) = 10 then 1 end ) as octomber,
+count(case when month(order_date) = 11 then 1 end ) as november,
+count(case when month(order_date) = 12 then 1 end ) as december
+from orders where order_date >= "2024-1-1" and order_date<"2025-1-1";
+
+-- 5. Query Optimization (7 marks)
+-- - You are given the query:
+-- SELECT * FROM orders WHERE YEAR(order_date) = 2024 AND amount > 500 ORDER BY order_date DESC;
+-- - Rewrite it for maximum efficiency using indexes and avoiding functions on indexed columns.
+
+create index idx_ord_amount on 
+orders(order_Date,amount);
+
+select * from orders where order_date>="2024-1-1" and order_date<"2025-1-1" and amount>500 order by order_date desc;
+
+-- 6. Trigger Implementation (8 marks)
+-- - Create a MySQL trigger that automatically logs all deleted orders into a table deleted_orders with columns: (order_id, deleted_at, deleted_by).
+
+create table deleted_orders(
+order_id int,
+deleted_at datetime,
+deleted_by varchar(100)
+);
+
+
+delimiter //
+create trigger after_delete_logger
+After delete on orders
+for each row
+begin
+insert into deleted_orders(order_id,deleted_at,deleted_by) values (old.order_id,now(),current_user);
+end //
+delimiter ;
+
+
+
+Section B – Python WebSocket Practical (40 marks)
+1. Basic WebSocket Server (8 marks)
+- Create a WebSocket server that accepts connections and sends 'Welcome <client_id>' upon connection.
+
+import asyncio
+import websockets
+
+async def client_side():
+    uri = "ws://localhost:8765"
+    async with websockets.connect(uri) as websocket:
+        print("Connected to server")
+        client_id = input("Enter your client ID: ")  
+        await websocket.send(client_id)  
+        response = await websocket.recv() 
+        print(f"Received from server: {response}")
+
+asyncio.run(client_side())
+
+
+import asyncio
+import websockets
+
+async def welcome(websocket):
+    client_id = await websocket.recv()
+    await websocket.send(f"Welcome {client_id}")
+
+async def main():
+    async with websockets.serve(welcome,"localhost",8765):
+        print("Server started at ws://localhost:8765")
+        await asyncio.Future() # will run forever
+
+asyncio.run(main())
+
+
+2. Broadcast Chat Server (8 marks)
+- Extend the server to broadcast messages from any client to all connected clients.
+
+
+# 2. Broadcast Chat Server (8 marks)
+# - Extend the server to broadcast messages from any client to all connected clients.
+
+import asyncio
+import websockets
+
+async def client_side():
+    uri = "ws://localhost:8765"
+    async with websockets.connect(uri) as websocket:
+        name = input("Please enter your name: ")
+        await websocket.send(name)
+        while True:
+            message = input("Enter the message to be send : ")
+            if message.lower() in ["exit","quit","q","close"]:
+                print("Exiting please wait...")
+                break
+            await websocket.send(message)
+            response = await websocket.recv()
+            print(f"Recieved from server: {response}")
+
+asyncio.run(client_side())
+
+
+
+
+import asyncio
+import websockets
+
+connected_clients = {}
+
+async def server_side(websocket):
+    name =  await websocket.recv()
+    connected_clients[websocket] = name 
+    print(f"{name} connected..")
+    print("Total number connected clients are : ",len(connected_clients))
+
+    try:
+        async for message in websocket:
+            print(f"{name} says : {message}")
+            for client_ws in list(connected_clients.keys()):
+                try:
+                    await client_ws.send(f"{name} says : {message}")
+                except websockets.exceptions.ConnectionClosed:
+                    print(f"{name} disconnected form chat")
+    except websockets.exceptions.ConnectionClosed:
+        print(f"{name} Disconnected")
+    finally:
+        connected_clients.pop(websocket,None)
+        print(f"Total no of connected clients are : {len(connected_clients)}")
+
+async def main():
+    async with websockets.serve(server_side,"localhost",8765,ping_interval=30,ping_timeout=30):
+        print("server started at \"ws://localhost:8765\"")
+        await asyncio.Future() #run forever
+
+asyncio.run(main())
+    
+
+
+3. Rate Limiting (6 marks)
+- Implement rate limiting: no client can send more than 5 messages in 10 seconds. If exceeded, disconnect them.
+
+
+import asyncio
+import websockets
+import time
+
+rate_limit_data = {}
+connected_clients = {}
+
+MAX_MESSAGES = 5
+TIME_WINDOW = 10  
+
+
+async def server_side(websocket, path):
+    name = await websocket.recv()
+    connected_clients[websocket] = name
+    print(f"{name} connected.")
+    print(f"Total connected clients: {len(connected_clients)}")
+
+    rate_limit_data[websocket] = {"count": 0, "last_reset": time.time()}
+    try:
+        async for message in websocket:
+            
+            current_time = time.time()
+            rate_data = rate_limit_data[websocket]
+
+            if current_time - rate_data["last_reset"] > TIME_WINDOW:
+                rate_data["count"] = 0
+                rate_data["last_reset"] = current_time
+            
+            if rate_data["count"] >= MAX_MESSAGES:
+                print(f"{name} exceeded rate limit. Disconnecting...")
+                await websocket.close()
+                return
+
+            rate_data["count"] += 1
+
+            print(f"{name} says: {message}")  
+          
+            for client_ws in list(connected_clients.keys()):
+                try:
+                    if client_ws != websocket: 
+                        await client_ws.send(f"{name} says: {message}")
+                except websockets.exceptions.ConnectionClosed:
+                    print(f"Client {name} disconnected unexpectedly.")
+
+    except websockets.exceptions.ConnectionClosed:
+        print(f"{name} disconnected.")
+    
+    finally:
+        connected_clients.pop(websocket, None)
+        rate_limit_data.pop(websocket, None)
+        print(f"Total connected clients: {len(connected_clients)}")
+
+async def main():
+    async with websockets.serve(server_side, "localhost", 8765, ping_interval=30, ping_timeout=30):
+        print("Server started at ws://localhost:8765")
+        await asyncio.Future() 
+
+asyncio.run(main())
+
+
+
+
+
+4. Idle Timeout (6 marks)
+- Disconnect clients if they are idle for more than 30 seconds.
+
+
+
+import asyncio
+import websockets
+import time
+
+connected_clients = {}
+idle_time = 30
+
+async def server_side(websocket,ping_timeout=None):
+    name = await websocket.recv()
+    connected_clients[websocket] = {"name": name, "last_active": time.time()}
+    print(f"{name} connected...")
+    print("Total number of connected clients:", len(connected_clients))
+
+    try:
+        async for message in websocket:
+            print(f"{name} says: {message}")
+            connected_clients[websocket]["last_active"] = time.time()
+
+            for client_ws in list(connected_clients.keys()):
+                try:
+                    await client_ws.send(f"{name} says: {message}")
+                except websockets.exceptions.ConnectionClosed:
+                    print(f"{name} disconnected from room")
+                    connected_clients.pop(client_ws, None)
+    except websockets.exceptions.ConnectionClosed:
+        print(f"{name} disconnected")
+
+    finally:
+        connected_clients.pop(websocket, None)
+        print(f"Total Number of connected clients: {len(connected_clients)}")
+
+async def moniter_idle_clients():
+    while True:
+        current_time = time.time()
+        for websocket, client_data in list(connected_clients.items()):
+            if current_time - client_data["last_active"] > idle_time:
+                print(f"Client {client_data['name']} has been idle for more than {idle_time} seconds, Disconnecting...")
+                await websocket.close()
+                connected_clients.pop(websocket, None)
+        await asyncio.sleep(10)
+
+async def main():
+    async with websockets.serve(server_side, "localhost", 8765):
+        print("Web Socket Started at ws://localhost:8765")
+        await asyncio.gather(moniter_idle_clients())
+
+asyncio.run(main())
+
+
+
+
+5. Authentication (6 marks)
+- Require clients to send an authentication token in the first message. Disconnect if invalid.
+
+import asyncio
+import websockets
+
+async def client_side():
+    uri = "ws://localhost:8765"
+    async with websockets.connect(uri) as websocket:
+        token = input("Please enter your token: ")
+        await websocket.send(token)
+        name = input("Please enter your name: ")
+        await websocket.send(name)
+        while True:
+            message = input("Enter the message to be send : ")
+            if message.lower() in ["exit","quit","q","close"]:
+                print("Exiting please wait...")
+                break
+            await websocket.send(message)
+            response = await websocket.recv()
+            print(f"Recieved from server: {response}")
+
+asyncio.run(client_side())
+
+
+
+
+
+import asyncio
+import websockets
+
+connected_clients = {}
+auth_token = "abc"
+
+async def server_side(websocket):
+    token = await websocket.recv()
+    if token != auth_token:
+        await websocket.send("Invalid token. Disconnecting...")
+        await websocket.close()
+        return
+    
+    else:
+        await websocket.send("Token accepted. Please enter your name:")
+        name =  await websocket.recv()
+        connected_clients[websocket] = name 
+        print(f"{name} connected..")
+        print("Total number connected clients are : ",len(connected_clients))
+
+    try:
+        async for message in websocket:
+            print(f"{name} says : {message}")
+            for client_ws in list(connected_clients.keys()):
+                try:
+                    await client_ws.send(f"{name} says : {message}")
+                except websockets.exceptions.ConnectionClosed:
+                    print(f"{name} disconnected form chat")
+    except websockets.exceptions.ConnectionClosed:
+        print(f"{name} Disconnected")
+    finally:
+        connected_clients.pop(websocket,None)
+        print(f"Total no of connected clients are : {len(connected_clients)}")
+
+async def main():
+    async with websockets.serve(server_side,"localhost",8765,ping_interval=30,ping_timeout=30):
+        print("server started at \"ws://localhost:8765\"")
+        await asyncio.Future() 
+
+asyncio.run(main())
+    
+
+
+
+6. Client Script (6 marks)
+- Write a Python WebSocket client that connects, authenticates, sends a message every 5 seconds, and prints all received messages.
+Section C – Integrated Task (20 marks)
+Scenario:
+You are building a real-time product inventory dashboard where updates from multiple sellers come in through WebSockets and are stored in MySQL.
+1. MySQL Table Design (5 marks)
+- Create the inventory_updates table with proper indexing to handle high-frequency inserts and allow fast retrieval of latest stock per product.
+
+
+create database inventry;
+use inventry;
+CREATE TABLE inventory_updates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    seller_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_product_updated (product_id, updated_at DESC),
+    INDEX idx_seller (seller_id)
+);
+
+
+2. Integration Code (15 marks)
+- Write Python WebSocket server code that:
+  - Accepts messages in JSON format:
+    {
+      "seller_id": 12,
+      "product_id": 45,
+      "quantity": 120,
+      "updated_at": "2025-08-08T10:30:00"
+    }
+  - Inserts into MySQL using connection pooling.
+  - Broadcasts the latest stock update to all connected clients in real-time.
+  
+  
+  
+  '''
+
+Scenario:
+You are building a real-time product inventory dashboard where updates 
+from multiple sellers come in through WebSockets and are stored in MySQL.
+
+1. MySQL Table Design (5 marks)
+- Create the inventory_updates table with proper indexing to handle 
+high-frequency inserts and allow fast retrieval of latest stock per product.
+
+2. Integration Code (15 marks)
+- Write Python WebSocket server code that:
+  - Accepts messages in JSON format:
+    {
+      "seller_id": 12,
+      "product_id": 45,
+      "quantity": 120,
+      "updated_at": "2025-08-08T10:30:00"
+    }
+  - Inserts into MySQL using connection pooling.
+  - Broadcasts the latest stock update to all connected clients in real-time.
+
+
+'''
+
+import asyncio
+import websockets
+import json
+import aiomysql
+
+connected_clients = set()
+
+# MySQL connection pool settings
+MYSQL_CONFIG = {
+    "host": "localhost",
+    "port": 3306,
+    "user": "root",
+    "password": "Root@123",
+    "db": "inventry",
+    "minsize": 1,
+    "maxsize": 5,
+    "autocommit": True
+}
+
+async def init_db_pool():
+    return await aiomysql.create_pool(**MYSQL_CONFIG)
+
+async def insert_inventory_update(pool, data):
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                INSERT INTO inventory_updates (seller_id, product_id, quantity, updated_at)
+                VALUES (%s, %s, %s, %s)
+            """, (data["seller_id"], data["product_id"], data["quantity"], data["updated_at"]))
+
+async def broadcast(message):
+    if connected_clients:
+        await asyncio.gather(*(client.send(message) for client in connected_clients if client.open))
+
+async def handler(websocket):
+    connected_clients.add(websocket)
+    try:
+        async for msg in websocket:
+            try:
+                data = json.loads(msg)
+            
+                for field in ("seller_id", "product_id", "quantity", "updated_at"):
+                    if field not in data:
+                        await websocket.send(json.dumps({"error": f"Missing field: {field}"}))
+                        break
+                else:
+                    await insert_inventory_update(handler.db_pool, data)
+                    await broadcast(json.dumps({"update": data}))
+            except Exception as e:
+                await websocket.send(json.dumps({"error": str(e)}))
+    finally:
+        connected_clients.remove(websocket)
+
+async def main():
+    handler.db_pool = await init_db_pool()
+    async with websockets.serve(handler, "localhost", 8765):
+        print("WebSocket server started at ws://localhost:8765")
+        await asyncio.Future()  
+
+asyncio.run(main())
+
+
+
