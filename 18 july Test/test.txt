@@ -1,0 +1,150 @@
+create database assignment;
+use assignment;
+
+create table employees(
+id int primary key,
+name varchar(50) not null,
+department_id int,
+salary decimal(10,2),
+hire_date date
+);
+
+
+create table departments(
+id int primary key auto_increment,
+name varchar(50) not null
+);
+
+
+create table projects(
+id int primary key,
+name varchar(50) not null,
+start_date date,
+end_date date 
+);
+
+
+create table employee_project(
+employee_id int,
+project_id int
+);
+
+
+
+insert into 
+employees(id,name,department_id,salary,hire_date)
+values
+(1,'Amit Kumar',1,60000,'2021-02-15'),
+(2,'Neha sharma',2,75000,'2020-11-01'),
+(3,'Rohan Gupta',null,50000,'2022-01-20'),
+(4,'Anjali Mehta',3,80000,'2019-09-13'),
+(5,'Ravi Deasai',1,72000,'2021-06-07');
+
+insert into departments(name) values
+('HR'),('IT'),('Marketing'),('Finance');
+
+insert into projects(id,name,start_date,end_date) values
+(1,'Recruitment App','2021-01-01','2021-06-30'),
+(2,'Website Redo','2022-03-15','2022-10-15'),
+(3,'ERP Upgrade','2020-05-10',null);
+
+insert into employee_project(project_id) values
+(1),(2),(2),(3),(1);
+
+select * from employees;
+select * from departments;
+select * from projects;
+select * from employee_project;
+
+
+
+-- Task 1: Data Retrieval (20 Marks) -------------------------------
+
+-- 1. Write a query to get names of employees with salary > 65000.
+
+select name from employees where salary>65000;
+
+-- 2. Write a query to fetch employee names along with their department name.
+
+select e.name,d.name from employees e join departments d on e.department_id = d.id;
+
+-- 3. Get a list of all departments and count of employees in each.
+
+select d.name,count(e.id) from departments d join employees e on e.department_id = d.id
+group by d.name;
+
+-- 4. List all employees who are not assigned to any department. 
+
+select * from employees where department_id is null;
+
+
+-- Task 2: Join and Aggregations (30 Marks)
+-- 5. Fetch employee names with their assigned project names using joins.
+
+select e.name as 'Employee Name',p.name as 'Project Name' from employees e a
+join employee_project ep  
+on e.id = ep.employee_id 
+join projects p 
+on  ep.project_id = p.id;
+
+-- 6. List the number of projects handled by each employee.
+
+select e.name,
+count(ep.project_id) as 'Assigned projects'
+from employees e
+join employee_project ep
+on e.id = ep.employee_id
+group by 
+e.name; 
+
+-- 7. Get department-wise average salary of employees. 
+
+select d.name,avg(e.salary) from departments d join employees
+e on e.id = d.id group by d.name;
+
+-- Task 3: Subqueries and Date Functions (30 Marks)
+-- 8. Fetch names of employees who joined before Jan 2021.
+
+select name,hire_date from employees where hire_date < '2021-01-01';
+
+-- 9. List employees working on more than 1 project.
+
+select e.name,count(ep.project_id) As 'No of projects'
+from employees e join employee_project ep
+on e.id = ep.employee_id group by e.name
+having count(ep.project_id)>1; 
+
+-- 10. Get the latest joined employee in each department. 
+
+select e.name,d.name from employees e join departments d on 
+e.id = d.id where min(datediff(curdate(),hire_date)) 
+group by e.name; 
+
+
+-- Task 4: DDL / DML / Bonus (20 Marks)
+-- 11. Write a query to add a new column `email` in `employees` table.
+
+Alter table employees add column email varchar(50);
+
+-- 12. Insert a new department named “Operations”.
+
+insert into departments(name) values
+('Operations');
+select * from departments;
+
+-- 13. Write a query to delete all employees with salary less than 55000.
+
+delete from employees where salary < 55000;
+select * from employees;
+
+-- 14. (Bonus) Create a view named `employee_summary` that shows: employee name, department name, total assigned projects. 
+
+Create View employee_summary as 
+select e.name as 'Employee Name',d.name 'Department Name',count(ep.project_id) 
+from employees e 
+join employee_project ep on e.id = ep.employee_id
+join departments d on e.department_id = d.id
+group by 
+e.name;
+
+
