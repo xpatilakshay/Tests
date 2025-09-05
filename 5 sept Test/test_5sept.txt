@@ -1,0 +1,189 @@
+'''
+
+Q1. File Parsing & Data Transformation (12 Marks)
+Given a CSV file sales.csv with the format:
+OrderID, CustomerName, Product, Quantity, Price
+101, Rajesh, Laptop, 2, 45000
+102, Anita, Mobile, 5, 15000
+103, Sameer, Laptop, 1, 46000
+104, Meena, Tablet, 3, 20000
+
+Tasks:
+- Load into dictionary of lists.
+- Compute total sales per customer.
+- Save results into customer_sales.json
+
+'''
+
+import csv
+import json
+
+data_dict = {}
+with open("sales.csv", "r") as file:
+    reader = csv.DictReader(file)
+    for key in reader.fieldnames:
+        data_dict[key] = []
+    for row in reader:
+        for key in reader.fieldnames:
+            if key in ["Quantity", "Price"]:
+                data_dict[key].append(int(row[key]))
+            else:
+                data_dict[key].append(row[key])
+
+customer_sales = {}
+for i in range(len(data_dict['CustomerName'])):
+    customer = data_dict['CustomerName'][i]
+    total = data_dict['Quantity'][i] * data_dict['Price'][i]
+    if customer in customer_sales:
+        customer_sales[customer] += total
+    else:
+        customer_sales[customer] = total
+
+with open("customer_sales.json", "w") as f:
+    json.dump(customer_sales, f, indent=4)
+
+print("Customer sales saved to customer_sales.json")
+
+
+
+
+'''Q2. Advanced Functions & Generators (10 Marks)
+Create generator prime_generator(n) that yields primes up to n.
+- Generate primes up to 200.
+- Filter only palindrome primes.'''
+
+def prime_generator(n):
+    sieve = [True] * (n+1)
+    sieve[0:2] = [False, False]
+    for i in range(2, n+1):
+        if sieve[i]:
+            yield i
+            for j in range(i*i, n+1, i):
+                sieve[j] = False
+
+primes = list(prime_generator(200))
+palindrome_primes = [p for p in primes if str(p) == str(p)[::-1]]
+print("Palindrome primes up to 200:", palindrome_primes)
+
+
+
+'''
+Section B – MySQL (50 Marks)
+
+Q5. Database Schema Design (10 Marks)
+Design Online Course System with tables:
+- Students(student_id, name, email, dob)
+- Courses(course_id, course_name, fee)
+- Enrollments(enroll_id, student_id, course_id, enroll_date)
+Constraints:
+- Foreign keys on student_id, course_id.
+- Prevent duplicate enrollments.'''
+
+Create database test;
+use test;
+
+CREATE TABLE Students (
+    student_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    dob DATE
+);
+
+CREATE TABLE Courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(100),
+    fee DECIMAL(10,2)
+);
+
+CREATE TABLE Enrollments (
+    enroll_id INT PRIMARY KEY,
+    student_id INT,
+    course_id INT,
+    enroll_date DATE,
+    UNIQUE(student_id, course_id),
+    FOREIGN KEY (student_id) REFERENCES Students(student_id),
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id)
+);
+
+
+
+
+'''Q6. Complex Queries (15 Marks)
+a. Top 3 highest fee courses.
+b. Students enrolled in more than 1 course.
+c. Total revenue per course.'''
+
+
+-- a. Top 3 highest fee courses
+SELECT * FROM Courses
+ORDER BY fee DESC
+LIMIT 3;
+
+-- b. Students enrolled in more than 1 course
+SELECT s.student_id, s.name, COUNT(e.course_id) as course_count
+FROM Students s
+JOIN Enrollments e ON s.student_id = e.student_id
+GROUP BY s.student_id
+HAVING course_count > 1;
+
+-- c. Total revenue per course
+SELECT c.course_id, c.course_name, SUM(c.fee) as total_revenue
+FROM Courses c
+JOIN Enrollments e ON c.course_id = e.course_id
+GROUP BY c.course_id, c.course_name;
+
+
+
+'''Q7. Stored Procedure & Trigger (15 Marks)
+a. Stored procedure get_student_courses(student_id).
+b. Trigger: Prevent enrollments if fee > 100000.'''
+
+
+
+-- a. Stored procedure get_student_courses
+DELIMITER //
+CREATE PROCEDURE get_student_courses(IN sid INT)
+BEGIN
+    SELECT c.course_id, c.course_name, c.fee
+    FROM Courses c
+    JOIN Enrollments e ON c.course_id = e.course_id
+    WHERE e.student_id = sid;
+END //
+DELIMITER ;
+
+
+
+
+
+-- b. Trigger to prevent enrollments if fee > 100000
+DELIMITER //
+CREATE TRIGGER prevent_high_fee
+BEFORE INSERT ON Enrollments
+FOR EACH ROW
+BEGIN
+    DECLARE course_fee DECIMAL(10,2);
+    SELECT fee INTO course_fee FROM Courses WHERE course_id = NEW.course_id;
+    IF course_fee > 100000 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Enrollment not allowed: fee exceeds 100000';
+    END IF;
+END //
+DELIMITER ;
+
+
+
+'''Q8. Advanced Joins & Subqueries (10 Marks)
+a. Display student names with number of courses (JOIN + GROUP BY).
+b. Find students not enrolled in any course (subquery).'''
+
+-- a. Student names with number of courses
+SELECT s.name, COUNT(e.course_id) as course_count
+FROM Students s
+LEFT JOIN Enrollments e ON s.student_id = e.student_id
+GROUP BY s.student_id, s.name;
+
+-- b. Students not enrolled in any course
+SELECT * FROM Students
+WHERE student_id NOT IN (
+    SELECT student_id FROM Enrollments
+);

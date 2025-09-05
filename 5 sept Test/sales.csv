@@ -1,0 +1,5 @@
+OrderID, CustomerName, Product, Quantity, Price
+101, Rajesh, Laptop, 2, 45000
+102, Anita, Mobile, 5, 15000
+103, Sameer, Laptop, 1, 46000
+104, Meena, Tablet, 3, 20000
