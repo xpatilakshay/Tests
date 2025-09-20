@@ -1,0 +1,6 @@
+date,region,product,units_sold,unit_price
+2025-09-01,North,Apples,100,2
+2025-09-01,South,Oranges,150,1.5
+2025-09-01,East,Apples,120,2
+2025-09-01,West,Bananas,200,1
+2025-09-01,North,Oranges,50,1.5
