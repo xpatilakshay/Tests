@@ -1,0 +1,4 @@
+The quick brown fox jumps over the lazy dog. 
+This is a simple example in which the fox is fast and the dog is slow. 
+Python is a powerful language, and it is used in many areas of technology.
+To learn Python is a good step for a career in data science and artificial intelligence.

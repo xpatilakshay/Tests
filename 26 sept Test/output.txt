@@ -1,0 +1,5 @@
+fox: 2
+dog: 2
+python: 2
+quick: 1
+brown: 1
